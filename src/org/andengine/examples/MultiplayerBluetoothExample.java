@@ -18,21 +18,20 @@ import org.andengine.examples.adt.messages.client.ClientMessageFlags;
 import org.andengine.examples.adt.messages.server.ConnectionCloseServerMessage;
 import org.andengine.examples.adt.messages.server.ServerMessageFlags;
 import org.andengine.examples.util.BluetoothListDevicesActivity;
-import org.andengine.extension.multiplayer.protocol.adt.message.IMessage;
-import org.andengine.extension.multiplayer.protocol.adt.message.server.IServerMessage;
-import org.andengine.extension.multiplayer.protocol.adt.message.server.ServerMessage;
-import org.andengine.extension.multiplayer.protocol.client.IServerMessageHandler;
-import org.andengine.extension.multiplayer.protocol.client.connector.BluetoothSocketConnectionServerConnector;
-import org.andengine.extension.multiplayer.protocol.client.connector.BluetoothSocketConnectionServerConnector.IBluetoothSocketConnectionServerConnectorListener;
-import org.andengine.extension.multiplayer.protocol.client.connector.ServerConnector;
-import org.andengine.extension.multiplayer.protocol.exception.BluetoothException;
-import org.andengine.extension.multiplayer.protocol.server.BluetoothSocketServer;
-import org.andengine.extension.multiplayer.protocol.server.BluetoothSocketServer.IBluetoothSocketServerListener;
-import org.andengine.extension.multiplayer.protocol.server.connector.BluetoothSocketConnectionClientConnector;
-import org.andengine.extension.multiplayer.protocol.server.connector.BluetoothSocketConnectionClientConnector.IBluetoothSocketConnectionClientConnectorListener;
-import org.andengine.extension.multiplayer.protocol.server.connector.ClientConnector;
-import org.andengine.extension.multiplayer.protocol.shared.BluetoothSocketConnection;
-import org.andengine.extension.multiplayer.protocol.util.MessagePool;
+import org.andengine.extension.multiplayer.adt.message.IMessage;
+import org.andengine.extension.multiplayer.adt.message.server.IServerMessage;
+import org.andengine.extension.multiplayer.adt.message.server.ServerMessage;
+import org.andengine.extension.multiplayer.client.IServerMessageHandler;
+import org.andengine.extension.multiplayer.client.connector.BluetoothSocketConnectionServerConnector;
+import org.andengine.extension.multiplayer.client.connector.BluetoothSocketConnectionServerConnector.IBluetoothSocketConnectionServerConnectorListener;
+import org.andengine.extension.multiplayer.client.connector.ServerConnector;
+import org.andengine.extension.multiplayer.server.BluetoothSocketServer;
+import org.andengine.extension.multiplayer.server.BluetoothSocketServer.IBluetoothSocketServerListener;
+import org.andengine.extension.multiplayer.server.connector.BluetoothSocketConnectionClientConnector;
+import org.andengine.extension.multiplayer.server.connector.BluetoothSocketConnectionClientConnector.IBluetoothSocketConnectionClientConnectorListener;
+import org.andengine.extension.multiplayer.server.connector.ClientConnector;
+import org.andengine.extension.multiplayer.shared.BluetoothSocketConnection;
+import org.andengine.extension.multiplayer.util.MessagePool;
 import org.andengine.input.touch.TouchEvent;
 import org.andengine.opengl.texture.ITexture;
 import org.andengine.opengl.texture.TextureOptions;
@@ -41,6 +40,7 @@ import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.opengl.texture.region.TextureRegionFactory;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
 import org.andengine.util.debug.Debug;
+import org.andengine.util.exception.BluetoothException;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -197,7 +197,7 @@ public class MultiplayerBluetoothExample extends SimpleBaseGameActivity implemen
 		if(this.mBluetoothSocketServer != null) {
 			try {
 				this.mBluetoothSocketServer.sendBroadcastServerMessage(new ConnectionCloseServerMessage());
-			} catch (final IOException e) {
+			} catch (final Exception e) {
 				Debug.e(e);
 			}
 			this.mBluetoothSocketServer.terminate();
@@ -247,7 +247,7 @@ public class MultiplayerBluetoothExample extends SimpleBaseGameActivity implemen
 							MultiplayerBluetoothExample.this.mBluetoothSocketServer.sendBroadcastServerMessage(addSpriteServerMessage);
 
 							MultiplayerBluetoothExample.this.mMessagePool.recycleMessage(addSpriteServerMessage);
-						} catch (final IOException e) {
+						} catch (final Exception e) {
 							Debug.e(e);
 						}
 						return true;
@@ -270,7 +270,7 @@ public class MultiplayerBluetoothExample extends SimpleBaseGameActivity implemen
 						MultiplayerBluetoothExample.this.mBluetoothSocketServer.sendBroadcastServerMessage(moveSpriteServerMessage);
 
 						MultiplayerBluetoothExample.this.mMessagePool.recycleMessage(moveSpriteServerMessage);
-					} catch (final IOException e) {
+					} catch (final Exception e) {
 						Debug.e(e);
 						return false;
 					}

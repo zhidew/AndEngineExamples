@@ -106,7 +106,7 @@ public class AutoParallaxBackgroundExample extends SimpleBaseGameActivity {
 		scene.setBackground(autoParallaxBackground);
 
 		final Sprite parallaxLayerBackSprite = new Sprite(0, 0, this.mParallaxLayerBackTextureRegion, vertexBufferObjectManager);
-		parallaxLayerBackSprite.setOffsetCenter(0, 0);
+		parallaxLayerBackSprite.setOffsetCenter(0, 50);
 		autoParallaxBackground.attachParallaxEntity(new ParallaxEntity(0.0f, parallaxLayerBackSprite));
 
 		final Sprite parallaxLayerMidSprite = new Sprite(0, CAMERA_HEIGHT - this.mParallaxLayerMidTextureRegion.getHeight() - 80, this.mParallaxLayerMidTextureRegion, vertexBufferObjectManager);
