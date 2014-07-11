@@ -5,7 +5,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 import org.andengine.examples.game.pong.util.constants.PongConstants;
-import org.andengine.extension.multiplayer.protocol.adt.message.client.ClientMessage;
+import org.andengine.extension.multiplayer.adt.message.client.ClientMessage;
 
 /**
  * (c) 2010 Nicolas Gramlich 
@@ -58,7 +58,7 @@ public class MovePaddleClientMessage extends ClientMessage implements PongConsta
 	}
 
 	@Override
-	protected void onReadTransmissionData(DataInputStream pDataInputStream) throws IOException {
+	protected void onReadTransmissionData(final DataInputStream pDataInputStream) throws IOException {
 		this.mPaddleID = pDataInputStream.readInt();
 		this.mY = pDataInputStream.readFloat();
 	}

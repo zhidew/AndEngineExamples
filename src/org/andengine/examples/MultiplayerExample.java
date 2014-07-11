@@ -19,21 +19,20 @@ import org.andengine.entity.util.FPSLogger;
 import org.andengine.examples.adt.messages.client.ClientMessageFlags;
 import org.andengine.examples.adt.messages.server.ConnectionCloseServerMessage;
 import org.andengine.examples.adt.messages.server.ServerMessageFlags;
-import org.andengine.extension.multiplayer.protocol.adt.message.IMessage;
-import org.andengine.extension.multiplayer.protocol.adt.message.server.IServerMessage;
-import org.andengine.extension.multiplayer.protocol.adt.message.server.ServerMessage;
-import org.andengine.extension.multiplayer.protocol.client.IServerMessageHandler;
-import org.andengine.extension.multiplayer.protocol.client.connector.ServerConnector;
-import org.andengine.extension.multiplayer.protocol.client.connector.SocketConnectionServerConnector;
-import org.andengine.extension.multiplayer.protocol.client.connector.SocketConnectionServerConnector.ISocketConnectionServerConnectorListener;
-import org.andengine.extension.multiplayer.protocol.server.SocketServer;
-import org.andengine.extension.multiplayer.protocol.server.SocketServer.ISocketServerListener;
-import org.andengine.extension.multiplayer.protocol.server.connector.ClientConnector;
-import org.andengine.extension.multiplayer.protocol.server.connector.SocketConnectionClientConnector;
-import org.andengine.extension.multiplayer.protocol.server.connector.SocketConnectionClientConnector.ISocketConnectionClientConnectorListener;
-import org.andengine.extension.multiplayer.protocol.shared.SocketConnection;
-import org.andengine.extension.multiplayer.protocol.util.MessagePool;
-import org.andengine.extension.multiplayer.protocol.util.WifiUtils;
+import org.andengine.extension.multiplayer.adt.message.IMessage;
+import org.andengine.extension.multiplayer.adt.message.server.IServerMessage;
+import org.andengine.extension.multiplayer.adt.message.server.ServerMessage;
+import org.andengine.extension.multiplayer.client.IServerMessageHandler;
+import org.andengine.extension.multiplayer.client.connector.ServerConnector;
+import org.andengine.extension.multiplayer.client.connector.SocketConnectionServerConnector;
+import org.andengine.extension.multiplayer.client.connector.SocketConnectionServerConnector.ISocketConnectionServerConnectorListener;
+import org.andengine.extension.multiplayer.server.SocketServer;
+import org.andengine.extension.multiplayer.server.SocketServer.ISocketServerListener;
+import org.andengine.extension.multiplayer.server.connector.ClientConnector;
+import org.andengine.extension.multiplayer.server.connector.SocketConnectionClientConnector;
+import org.andengine.extension.multiplayer.server.connector.SocketConnectionClientConnector.ISocketConnectionClientConnectorListener;
+import org.andengine.extension.multiplayer.shared.SocketConnection;
+import org.andengine.extension.multiplayer.util.MessagePool;
 import org.andengine.input.touch.TouchEvent;
 import org.andengine.opengl.texture.ITexture;
 import org.andengine.opengl.texture.TextureOptions;
@@ -41,6 +40,8 @@ import org.andengine.opengl.texture.bitmap.AssetBitmapTexture;
 import org.andengine.opengl.texture.region.ITextureRegion;
 import org.andengine.opengl.texture.region.TextureRegionFactory;
 import org.andengine.ui.activity.SimpleBaseGameActivity;
+import org.andengine.util.WifiUtils;
+import org.andengine.util.WifiUtils.WifiUtilsException;
 import org.andengine.util.debug.Debug;
 
 import android.app.AlertDialog;
@@ -52,13 +53,13 @@ import android.view.KeyEvent;
 import android.widget.EditText;
 
 /**
- * (c) 2010 Nicolas Gramlich
- * (c) 2011 Zynga
- *
+ * (c) 2010 Nicolas Gramlich (c) 2011 Zynga
+ * 
  * @author Nicolas Gramlich
  * @since 17:10:24 - 19.06.2010
  */
-public class MultiplayerExample extends SimpleBaseGameActivity implements ClientMessageFlags, ServerMessageFlags {
+public class MultiplayerExample extends SimpleBaseGameActivity implements
+		ClientMessageFlags, ServerMessageFlags {
 	// ===========================================================
 	// Constants
 	// ===========================================================
@@ -102,8 +103,10 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 	}
 
 	private void initMessagePool() {
-		this.mMessagePool.registerMessage(FLAG_MESSAGE_SERVER_ADD_SPRITE, AddSpriteServerMessage.class);
-		this.mMessagePool.registerMessage(FLAG_MESSAGE_SERVER_MOVE_SPRITE, MoveSpriteServerMessage.class);
+		this.mMessagePool.registerMessage(FLAG_MESSAGE_SERVER_ADD_SPRITE,
+				AddSpriteServerMessage.class);
+		this.mMessagePool.registerMessage(FLAG_MESSAGE_SERVER_MOVE_SPRITE,
+				MoveSpriteServerMessage.class);
 	}
 
 	// ===========================================================
@@ -120,13 +123,16 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 
 		final Camera camera = new Camera(0, 0, CAMERA_WIDTH, CAMERA_HEIGHT);
 
-		return new EngineOptions(true, ScreenOrientation.LANDSCAPE_SENSOR, new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT), camera);
+		return new EngineOptions(true, ScreenOrientation.LANDSCAPE_SENSOR,
+				new RatioResolutionPolicy(CAMERA_WIDTH, CAMERA_HEIGHT), camera);
 	}
 
 	@Override
 	public void onCreateResources() throws IOException {
-		this.mFaceTexture = new AssetBitmapTexture(this.getTextureManager(), this.getAssets(), "gfx/face_box.png", TextureOptions.BILINEAR);
-		this.mFaceTextureRegion = TextureRegionFactory.extractFromTexture(this.mFaceTexture);
+		this.mFaceTexture = new AssetBitmapTexture(this.getTextureManager(),
+				this.getAssets(), "gfx/face_box.png", TextureOptions.BILINEAR);
+		this.mFaceTextureRegion = TextureRegionFactory
+				.extractFromTexture(this.mFaceTexture);
 		this.mFaceTexture.load();
 	}
 
@@ -138,19 +144,26 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 		scene.getBackground().setColor(0.09804f, 0.6274f, 0.8784f);
 
 		/* We allow only the server to actively send around messages. */
-		if(MultiplayerExample.this.mSocketServer != null) {
+		if (MultiplayerExample.this.mSocketServer != null) {
 			scene.setOnSceneTouchListener(new IOnSceneTouchListener() {
 				@Override
-				public boolean onSceneTouchEvent(final Scene pScene, final TouchEvent pSceneTouchEvent) {
-					if(pSceneTouchEvent.isActionDown()) {
+				public boolean onSceneTouchEvent(final Scene pScene,
+						final TouchEvent pSceneTouchEvent) {
+					if (pSceneTouchEvent.isActionDown()) {
 						try {
-							final AddSpriteServerMessage addSpriteServerMessage = (AddSpriteServerMessage) MultiplayerExample.this.mMessagePool.obtainMessage(FLAG_MESSAGE_SERVER_ADD_SPRITE);
-							addSpriteServerMessage.set(MultiplayerExample.this.mSpriteIDCounter++, pSceneTouchEvent.getX(), pSceneTouchEvent.getY());
+							final AddSpriteServerMessage addSpriteServerMessage = (AddSpriteServerMessage) MultiplayerExample.this.mMessagePool
+									.obtainMessage(FLAG_MESSAGE_SERVER_ADD_SPRITE);
+							addSpriteServerMessage.set(
+									MultiplayerExample.this.mSpriteIDCounter++,
+									pSceneTouchEvent.getX(),
+									pSceneTouchEvent.getY());
 
-							MultiplayerExample.this.mSocketServer.sendBroadcastServerMessage(addSpriteServerMessage);
+							MultiplayerExample.this.mSocketServer
+									.sendBroadcastServerMessage(addSpriteServerMessage);
 
-							MultiplayerExample.this.mMessagePool.recycleMessage(addSpriteServerMessage);
-						} catch (final IOException e) {
+							MultiplayerExample.this.mMessagePool
+									.recycleMessage(addSpriteServerMessage);
+						} catch (final Exception e) {
 							Debug.e(e);
 						}
 						return true;
@@ -162,18 +175,26 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 
 			scene.setOnAreaTouchListener(new IOnAreaTouchListener() {
 				@Override
-				public boolean onAreaTouched(final TouchEvent pSceneTouchEvent, final ITouchArea pTouchArea, final float pTouchAreaLocalX, final float pTouchAreaLocalY) {
+				public boolean onAreaTouched(final TouchEvent pSceneTouchEvent,
+						final ITouchArea pTouchArea,
+						final float pTouchAreaLocalX,
+						final float pTouchAreaLocalY) {
 					try {
-						final Sprite sprite = (Sprite)pTouchArea;
-						final int spriteID = (Integer)sprite.getUserData();
+						final Sprite sprite = (Sprite) pTouchArea;
+						final int spriteID = (Integer) sprite.getUserData();
 
-						final MoveSpriteServerMessage moveSpriteServerMessage = (MoveSpriteServerMessage) MultiplayerExample.this.mMessagePool.obtainMessage(FLAG_MESSAGE_SERVER_MOVE_SPRITE);
-						moveSpriteServerMessage.set(spriteID, pSceneTouchEvent.getX(), pSceneTouchEvent.getY());
+						final MoveSpriteServerMessage moveSpriteServerMessage = (MoveSpriteServerMessage) MultiplayerExample.this.mMessagePool
+								.obtainMessage(FLAG_MESSAGE_SERVER_MOVE_SPRITE);
+						moveSpriteServerMessage.set(spriteID,
+								pSceneTouchEvent.getX(),
+								pSceneTouchEvent.getY());
 
-						MultiplayerExample.this.mSocketServer.sendBroadcastServerMessage(moveSpriteServerMessage);
+						MultiplayerExample.this.mSocketServer
+								.sendBroadcastServerMessage(moveSpriteServerMessage);
 
-						MultiplayerExample.this.mMessagePool.recycleMessage(moveSpriteServerMessage);
-					} catch (final IOException e) {
+						MultiplayerExample.this.mMessagePool
+								.recycleMessage(moveSpriteServerMessage);
+					} catch (final Exception e) {
 						Debug.e(e);
 						return false;
 					}
@@ -189,96 +210,108 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 
 	@Override
 	protected Dialog onCreateDialog(final int pID) {
-		switch(pID) {
-			case DIALOG_SHOW_SERVER_IP_ID:
-				try {
-					return new AlertDialog.Builder(this)
+		switch (pID) {
+		case DIALOG_SHOW_SERVER_IP_ID:
+			try {
+				return new AlertDialog.Builder(this)
+						.setIcon(android.R.drawable.ic_dialog_info)
+						.setTitle("Your Server-IP ...")
+						.setCancelable(false)
+						.setMessage(
+								"The IP of your Server is:\n"
+										+ WifiUtils.getWifiIPv4Address(this))
+						.setPositiveButton(android.R.string.ok, null).create();
+			} catch (final WifiUtilsException e) {
+				return new AlertDialog.Builder(this)
+						.setIcon(android.R.drawable.ic_dialog_alert)
+						.setTitle("Your Server-IP ...")
+						.setCancelable(false)
+						.setMessage("Error retrieving IP of your Server: " + e)
+						.setPositiveButton(android.R.string.ok,
+								new OnClickListener() {
+									@Override
+									public void onClick(
+											final DialogInterface pDialog,
+											final int pWhich) {
+										MultiplayerExample.this.finish();
+									}
+								}).create();
+			}
+		case DIALOG_ENTER_SERVER_IP_ID:
+			final EditText ipEditText = new EditText(this);
+			return new AlertDialog.Builder(this)
 					.setIcon(android.R.drawable.ic_dialog_info)
-					.setTitle("Your Server-IP ...")
+					.setTitle("Enter Server-IP ...")
 					.setCancelable(false)
-					.setMessage("The IP of your Server is:\n" + WifiUtils.getWifiIPv4Address(this))
-					.setPositiveButton(android.R.string.ok, null)
-					.create();
-				} catch (final UnknownHostException e) {
-					return new AlertDialog.Builder(this)
-					.setIcon(android.R.drawable.ic_dialog_alert)
-					.setTitle("Your Server-IP ...")
-					.setCancelable(false)
-					.setMessage("Error retrieving IP of your Server: " + e)
-					.setPositiveButton(android.R.string.ok, new OnClickListener() {
+					.setView(ipEditText)
+					.setPositiveButton("Connect", new OnClickListener() {
 						@Override
-						public void onClick(final DialogInterface pDialog, final int pWhich) {
-							MultiplayerExample.this.finish();
+						public void onClick(final DialogInterface pDialog,
+								final int pWhich) {
+							MultiplayerExample.this.mServerIP = ipEditText
+									.getText().toString();
+							MultiplayerExample.this.initClient();
 						}
 					})
-					.create();
-				}
-			case DIALOG_ENTER_SERVER_IP_ID:
-				final EditText ipEditText = new EditText(this);
-				return new AlertDialog.Builder(this)
-				.setIcon(android.R.drawable.ic_dialog_info)
-				.setTitle("Enter Server-IP ...")
-				.setCancelable(false)
-				.setView(ipEditText)
-				.setPositiveButton("Connect", new OnClickListener() {
-					@Override
-					public void onClick(final DialogInterface pDialog, final int pWhich) {
-						MultiplayerExample.this.mServerIP = ipEditText.getText().toString();
-						MultiplayerExample.this.initClient();
-					}
-				})
-				.setNegativeButton(android.R.string.cancel, new OnClickListener() {
-					@Override
-					public void onClick(final DialogInterface pDialog, final int pWhich) {
-						MultiplayerExample.this.finish();
-					}
-				})
-				.create();
-			case DIALOG_CHOOSE_SERVER_OR_CLIENT_ID:
-				return new AlertDialog.Builder(this)
-				.setIcon(android.R.drawable.ic_dialog_info)
-				.setTitle("Be Server or Client ...")
-				.setCancelable(false)
-				.setPositiveButton("Client", new OnClickListener() {
-					@Override
-					public void onClick(final DialogInterface pDialog, final int pWhich) {
-						MultiplayerExample.this.showDialog(DIALOG_ENTER_SERVER_IP_ID);
-					}
-				})
-				.setNeutralButton("Server", new OnClickListener() {
-					@Override
-					public void onClick(final DialogInterface pDialog, final int pWhich) {
-						MultiplayerExample.this.toast("You can add and move sprites, which are only shown on the clients.");
-						MultiplayerExample.this.initServer();
-						MultiplayerExample.this.showDialog(DIALOG_SHOW_SERVER_IP_ID);
-					}
-				})
-				.setNegativeButton("Both", new OnClickListener() {
-					@Override
-					public void onClick(final DialogInterface pDialog, final int pWhich) {
-						MultiplayerExample.this.toast("You can add sprites and move them, by dragging them.");
-						MultiplayerExample.this.initServerAndClient();
-						MultiplayerExample.this.showDialog(DIALOG_SHOW_SERVER_IP_ID);
-					}
-				})
-				.create();
-			default:
-				return super.onCreateDialog(pID);
+					.setNegativeButton(android.R.string.cancel,
+							new OnClickListener() {
+								@Override
+								public void onClick(
+										final DialogInterface pDialog,
+										final int pWhich) {
+									MultiplayerExample.this.finish();
+								}
+							}).create();
+		case DIALOG_CHOOSE_SERVER_OR_CLIENT_ID:
+			return new AlertDialog.Builder(this)
+					.setIcon(android.R.drawable.ic_dialog_info)
+					.setTitle("Be Server or Client ...").setCancelable(false)
+					.setPositiveButton("Client", new OnClickListener() {
+						@Override
+						public void onClick(final DialogInterface pDialog,
+								final int pWhich) {
+							MultiplayerExample.this
+									.showDialog(DIALOG_ENTER_SERVER_IP_ID);
+						}
+					}).setNeutralButton("Server", new OnClickListener() {
+						@Override
+						public void onClick(final DialogInterface pDialog,
+								final int pWhich) {
+							MultiplayerExample.this
+									.toast("You can add and move sprites, which are only shown on the clients.");
+							MultiplayerExample.this.initServer();
+							MultiplayerExample.this
+									.showDialog(DIALOG_SHOW_SERVER_IP_ID);
+						}
+					}).setNegativeButton("Both", new OnClickListener() {
+						@Override
+						public void onClick(final DialogInterface pDialog,
+								final int pWhich) {
+							MultiplayerExample.this
+									.toast("You can add sprites and move them, by dragging them.");
+							MultiplayerExample.this.initServerAndClient();
+							MultiplayerExample.this
+									.showDialog(DIALOG_SHOW_SERVER_IP_ID);
+						}
+					}).create();
+		default:
+			return super.onCreateDialog(pID);
 		}
 	}
 
 	@Override
 	protected void onDestroy() {
-		if(this.mSocketServer != null) {
+		if (this.mSocketServer != null) {
 			try {
-				this.mSocketServer.sendBroadcastServerMessage(new ConnectionCloseServerMessage());
-			} catch (final IOException e) {
+				this.mSocketServer
+						.sendBroadcastServerMessage(new ConnectionCloseServerMessage());
+			} catch (final Exception e) {
 				Debug.e(e);
 			}
 			this.mSocketServer.terminate();
 		}
 
-		if(this.mServerConnector != null) {
+		if (this.mServerConnector != null) {
 			this.mServerConnector.terminate();
 		}
 
@@ -287,10 +320,10 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 
 	@Override
 	public boolean onKeyUp(final int pKeyCode, final KeyEvent pEvent) {
-		switch(pKeyCode) {
-			case KeyEvent.KEYCODE_BACK:
-				this.finish();
-				return true;
+		switch (pKeyCode) {
+		case KeyEvent.KEYCODE_BACK:
+			this.finish();
+			return true;
 		}
 		return super.onKeyUp(pKeyCode, pEvent);
 	}
@@ -303,7 +336,8 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 		final Scene scene = this.mEngine.getScene();
 
 		/* Create the sprite and add it to the scene. */
-		final Sprite sprite = new Sprite(pX, pY, this.mFaceTextureRegion, this.getVertexBufferObjectManager());
+		final Sprite sprite = new Sprite(pX, pY, this.mFaceTextureRegion,
+				this.getVertexBufferObjectManager());
 		sprite.setUserData(pID);
 
 		this.mSprites.put(pID, sprite);
@@ -320,7 +354,10 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 	private void initServerAndClient() {
 		this.initServer();
 
-		/* Wait some time after the server has been started, so it actually can start up. */
+		/*
+		 * Wait some time after the server has been started, so it actually can
+		 * start up.
+		 */
 		try {
 			Thread.sleep(500);
 		} catch (final Throwable t) {
@@ -331,9 +368,13 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 	}
 
 	private void initServer() {
-		this.mSocketServer = new SocketServer<SocketConnectionClientConnector>(SERVER_PORT, new ExampleClientConnectorListener(), new ExampleServerStateListener()) {
+		this.mSocketServer = new SocketServer<SocketConnectionClientConnector>(
+				SERVER_PORT, new ExampleClientConnectorListener(),
+				new ExampleServerStateListener()) {
 			@Override
-			protected SocketConnectionClientConnector newClientConnector(final SocketConnection pSocketConnection) throws IOException {
+			protected SocketConnectionClientConnector newClientConnector(
+					final SocketConnection pSocketConnection)
+					throws IOException {
 				return new SocketConnectionClientConnector(pSocketConnection);
 			}
 		};
@@ -343,30 +384,57 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 
 	private void initClient() {
 		try {
-			this.mServerConnector = new SocketConnectionServerConnector(new SocketConnection(new Socket(this.mServerIP, SERVER_PORT)), new ExampleServerConnectorListener());
+			this.mServerConnector = new SocketConnectionServerConnector(
+					new SocketConnection(
+							new Socket(this.mServerIP, SERVER_PORT)),
+					new ExampleServerConnectorListener());
 
-			this.mServerConnector.registerServerMessage(FLAG_MESSAGE_SERVER_CONNECTION_CLOSE, ConnectionCloseServerMessage.class, new IServerMessageHandler<SocketConnection>() {
-				@Override
-				public void onHandleMessage(final ServerConnector<SocketConnection> pServerConnector, final IServerMessage pServerMessage) throws IOException {
-					MultiplayerExample.this.finish();
-				}
-			});
+			this.mServerConnector.registerServerMessage(
+					FLAG_MESSAGE_SERVER_CONNECTION_CLOSE,
+					ConnectionCloseServerMessage.class,
+					new IServerMessageHandler<SocketConnection>() {
+						@Override
+						public void onHandleMessage(
+								final ServerConnector<SocketConnection> pServerConnector,
+								final IServerMessage pServerMessage)
+								throws IOException {
+							MultiplayerExample.this.finish();
+						}
+					});
 
-			this.mServerConnector.registerServerMessage(FLAG_MESSAGE_SERVER_ADD_SPRITE, AddSpriteServerMessage.class, new IServerMessageHandler<SocketConnection>() {
-				@Override
-				public void onHandleMessage(final ServerConnector<SocketConnection> pServerConnector, final IServerMessage pServerMessage) throws IOException {
-					final AddSpriteServerMessage addSpriteServerMessage = (AddSpriteServerMessage)pServerMessage;
-					MultiplayerExample.this.addSprite(addSpriteServerMessage.mID, addSpriteServerMessage.mX, addSpriteServerMessage.mY);
-				}
-			});
+			this.mServerConnector.registerServerMessage(
+					FLAG_MESSAGE_SERVER_ADD_SPRITE,
+					AddSpriteServerMessage.class,
+					new IServerMessageHandler<SocketConnection>() {
+						@Override
+						public void onHandleMessage(
+								final ServerConnector<SocketConnection> pServerConnector,
+								final IServerMessage pServerMessage)
+								throws IOException {
+							final AddSpriteServerMessage addSpriteServerMessage = (AddSpriteServerMessage) pServerMessage;
+							MultiplayerExample.this.addSprite(
+									addSpriteServerMessage.mID,
+									addSpriteServerMessage.mX,
+									addSpriteServerMessage.mY);
+						}
+					});
 
-			this.mServerConnector.registerServerMessage(FLAG_MESSAGE_SERVER_MOVE_SPRITE, MoveSpriteServerMessage.class, new IServerMessageHandler<SocketConnection>() {
-				@Override
-				public void onHandleMessage(final ServerConnector<SocketConnection> pServerConnector, final IServerMessage pServerMessage) throws IOException {
-					final MoveSpriteServerMessage moveSpriteServerMessage = (MoveSpriteServerMessage)pServerMessage;
-					MultiplayerExample.this.moveSprite(moveSpriteServerMessage.mID, moveSpriteServerMessage.mX, moveSpriteServerMessage.mY);
-				}
-			});
+			this.mServerConnector.registerServerMessage(
+					FLAG_MESSAGE_SERVER_MOVE_SPRITE,
+					MoveSpriteServerMessage.class,
+					new IServerMessageHandler<SocketConnection>() {
+						@Override
+						public void onHandleMessage(
+								final ServerConnector<SocketConnection> pServerConnector,
+								final IServerMessage pServerMessage)
+								throws IOException {
+							final MoveSpriteServerMessage moveSpriteServerMessage = (MoveSpriteServerMessage) pServerMessage;
+							MultiplayerExample.this.moveSprite(
+									moveSpriteServerMessage.mID,
+									moveSpriteServerMessage.mX,
+									moveSpriteServerMessage.mY);
+						}
+					});
 
 			this.mServerConnector.getConnection().start();
 		} catch (final Throwable t) {
@@ -396,7 +464,8 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 
 		}
 
-		public AddSpriteServerMessage(final int pID, final float pX, final float pY) {
+		public AddSpriteServerMessage(final int pID, final float pX,
+				final float pY) {
 			this.mID = pID;
 			this.mX = pX;
 			this.mY = pY;
@@ -414,14 +483,16 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 		}
 
 		@Override
-		protected void onReadTransmissionData(final DataInputStream pDataInputStream) throws IOException {
+		protected void onReadTransmissionData(
+				final DataInputStream pDataInputStream) throws IOException {
 			this.mID = pDataInputStream.readInt();
 			this.mX = pDataInputStream.readFloat();
 			this.mY = pDataInputStream.readFloat();
 		}
 
 		@Override
-		protected void onWriteTransmissionData(final DataOutputStream pDataOutputStream) throws IOException {
+		protected void onWriteTransmissionData(
+				final DataOutputStream pDataOutputStream) throws IOException {
 			pDataOutputStream.writeInt(this.mID);
 			pDataOutputStream.writeFloat(this.mX);
 			pDataOutputStream.writeFloat(this.mY);
@@ -437,7 +508,8 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 
 		}
 
-		public MoveSpriteServerMessage(final int pID, final float pX, final float pY) {
+		public MoveSpriteServerMessage(final int pID, final float pX,
+				final float pY) {
 			this.mID = pID;
 			this.mX = pX;
 			this.mY = pY;
@@ -455,60 +527,76 @@ public class MultiplayerExample extends SimpleBaseGameActivity implements Client
 		}
 
 		@Override
-		protected void onReadTransmissionData(final DataInputStream pDataInputStream) throws IOException {
+		protected void onReadTransmissionData(
+				final DataInputStream pDataInputStream) throws IOException {
 			this.mID = pDataInputStream.readInt();
 			this.mX = pDataInputStream.readFloat();
 			this.mY = pDataInputStream.readFloat();
 		}
 
 		@Override
-		protected void onWriteTransmissionData(final DataOutputStream pDataOutputStream) throws IOException {
+		protected void onWriteTransmissionData(
+				final DataOutputStream pDataOutputStream) throws IOException {
 			pDataOutputStream.writeInt(this.mID);
 			pDataOutputStream.writeFloat(this.mX);
 			pDataOutputStream.writeFloat(this.mY);
 		}
 	}
 
-	private class ExampleServerConnectorListener implements ISocketConnectionServerConnectorListener {
+	private class ExampleServerConnectorListener implements
+			ISocketConnectionServerConnectorListener {
 		@Override
 		public void onStarted(final ServerConnector<SocketConnection> pConnector) {
 			MultiplayerExample.this.toast("CLIENT: Connected to server.");
 		}
 
 		@Override
-		public void onTerminated(final ServerConnector<SocketConnection> pConnector) {
-			MultiplayerExample.this.toast("CLIENT: Disconnected from Server...");
+		public void onTerminated(
+				final ServerConnector<SocketConnection> pConnector) {
+			MultiplayerExample.this
+					.toast("CLIENT: Disconnected from Server...");
 			MultiplayerExample.this.finish();
 		}
 	}
 
-	private class ExampleServerStateListener implements ISocketServerListener<SocketConnectionClientConnector> {
+	private class ExampleServerStateListener implements
+			ISocketServerListener<SocketConnectionClientConnector> {
 		@Override
-		public void onStarted(final SocketServer<SocketConnectionClientConnector> pSocketServer) {
+		public void onStarted(
+				final SocketServer<SocketConnectionClientConnector> pSocketServer) {
 			MultiplayerExample.this.toast("SERVER: Started.");
 		}
 
 		@Override
-		public void onTerminated(final SocketServer<SocketConnectionClientConnector> pSocketServer) {
+		public void onTerminated(
+				final SocketServer<SocketConnectionClientConnector> pSocketServer) {
 			MultiplayerExample.this.toast("SERVER: Terminated.");
 		}
 
 		@Override
-		public void onException(final SocketServer<SocketConnectionClientConnector> pSocketServer, final Throwable pThrowable) {
+		public void onException(
+				final SocketServer<SocketConnectionClientConnector> pSocketServer,
+				final Throwable pThrowable) {
 			Debug.e(pThrowable);
 			MultiplayerExample.this.toast("SERVER: Exception: " + pThrowable);
 		}
 	}
 
-	private class ExampleClientConnectorListener implements ISocketConnectionClientConnectorListener {
+	private class ExampleClientConnectorListener implements
+			ISocketConnectionClientConnectorListener {
 		@Override
 		public void onStarted(final ClientConnector<SocketConnection> pConnector) {
-			MultiplayerExample.this.toast("SERVER: Client connected: " + pConnector.getConnection().getSocket().getInetAddress().getHostAddress());
+			MultiplayerExample.this.toast("SERVER: Client connected: "
+					+ pConnector.getConnection().getSocket().getInetAddress()
+							.getHostAddress());
 		}
 
 		@Override
-		public void onTerminated(final ClientConnector<SocketConnection> pConnector) {
-			MultiplayerExample.this.toast("SERVER: Client disconnected: " + pConnector.getConnection().getSocket().getInetAddress().getHostAddress());
+		public void onTerminated(
+				final ClientConnector<SocketConnection> pConnector) {
+			MultiplayerExample.this.toast("SERVER: Client disconnected: "
+					+ pConnector.getConnection().getSocket().getInetAddress()
+							.getHostAddress());
 		}
 	}
 }
