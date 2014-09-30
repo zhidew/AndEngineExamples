@@ -35,10 +35,10 @@ public class TextBreakExample extends SimpleLayoutGameActivity implements TextWa
 	// Constants
 	// ===========================================================
 
-	private static final int CAMERA_WIDTH = 720;
-	private static final int CAMERA_HEIGHT = 480;
+	private static final int CAMERA_WIDTH = 1136;
+	private static final int CAMERA_HEIGHT = 640;
 
-	private static final float AUTOWRAP_WIDTH = 720 - 50 - 50;
+	private static final float AUTOWRAP_WIDTH = 1136 - 50 - 50;
 
 	// ===========================================================
 	// Fields
@@ -85,7 +85,7 @@ public class TextBreakExample extends SimpleLayoutGameActivity implements TextWa
 	public EngineOptions onCreateEngineOptions() {
 		final Camera camera = new Camera(0, 0, TextBreakExample.CAMERA_WIDTH, TextBreakExample.CAMERA_HEIGHT);
 
-		return new EngineOptions(true, ScreenOrientation.PORTRAIT_FIXED, new RatioResolutionPolicy(TextBreakExample.CAMERA_WIDTH, TextBreakExample.CAMERA_HEIGHT), camera);
+		return new EngineOptions(true, ScreenOrientation.LANDSCAPE_SENSOR, new RatioResolutionPolicy(TextBreakExample.CAMERA_WIDTH, TextBreakExample.CAMERA_HEIGHT), camera);
 	}
 
 	@Override
